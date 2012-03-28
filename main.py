@@ -1,10 +1,9 @@
 #!/usr/bin/python2
+# -*- coding: <encoding name> -*-
 
 import urllib2
 import urllib
 import cookielib
-import os
-import math
 
 class CodeforcesClient(object):
 	def __init__(self, login, password, debug_level=0):
@@ -73,7 +72,7 @@ class CodeforcesClient(object):
 		login_data = urllib.urlencode({
 		  'handle' : self.login,
 		  'password' : self.password,
-		  '_tta' : get_tta(),
+		  '_tta' : self.get_tta(),
 		  'submitted' : 'true',
 		  'remember' : 'true',
 		})
