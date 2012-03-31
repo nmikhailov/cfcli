@@ -3,10 +3,49 @@
 
 from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
+import BeautifulSoup
 import poster
 import urllib2
 import urllib
 import cookielib
+import sys
+import re
+
+class Table(object):
+	def __init__(self, table, c_cross='+', c_horiz='-', c_vert='|'):
+		"""Normalize table"""
+		self.c_cross = c_cross
+		self.c_horiz = c_horiz
+		self.c_vert = c_vert
+
+		self.table = table
+		self.rows = len(self.table)
+		self.columns = max(len(row) for row in self.table)
+		# Normalize
+		for row in self.table:
+			row += [''] * (self.columns - len(row))
+		# Calc width
+		self.widths = [0] * self.columns
+		for row in self.table:
+			for cid, element in enumerate(row):
+				self.widths[cid] = max(self.widths[cid], len(element) + 1)
+
+	def __str__(self):
+		delim = self.c_cross + ''.join([self.c_horiz * w + self.c_cross for w in self.widths])
+		text = delim + "\n"
+
+		for r_id, row in enumerate(self.table):
+			for elem, width in zip(row, self.widths):
+				if r_id == 0:
+					text += self.c_vert + elem.center(width)
+				else:
+					text += self.c_vert + elem.ljust(width)
+			text += self.c_vert + '\n'
+			if r_id == 0:
+				text += delim + '\n'
+
+		return text + delim
+
 
 class CodeforcesClient(object):
 	def __init__(self, login, password, debug_level=0):
@@ -103,7 +142,19 @@ class CodeforcesClient(object):
 		request = self.opener.open(request)
 		print ''.join(request.readlines())
 
-
+	def get_status(self, contest_id):
+		request = self.opener.open("http://codeforces.com/contest/" + str(contest_id) + "/my")
+		html = ''.join(request.readlines())
+		soup = BeautifulSoup.BeautifulSoup(html)
+		soup_table = soup.find(attrs={'class' : 'status-frame-datatable'})
+		table = []
+		for row in soup_table.findAll('tr'):
+			trow = []
+			for header in row.findAll(re.compile('t[dh]')):
+				trow += [header.getText().strip()]
+			table += [trow]
+		print str(Table(table))
+		
 if __name__ == '__main__':
 	settings = {}
 	for line in open(".cfclient"):
@@ -112,4 +163,5 @@ if __name__ == '__main__':
 
 	client = CodeforcesClient(settings['login'], settings['pass'])
 	#print client.get_index()
-	client.submit_solution('166', 'B', './solutions/solution.cpp')
+	#client.submit_solution('166', 'B', './solutions/solution.cpp')
+	client.get_status(166)
